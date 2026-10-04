@@ -615,8 +615,16 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label" for="clientPhone">Номер телефону:</label>
-                        <input type="tel" id="clientPhone" class="form-input" placeholder="+38 (0XX) XXX-XX-XX" required>
+                        <label class="form-label" for="clientPhone">Номер телефону (повний, всі цифри):</label>
+                        <input type="tel" id="clientPhone" class="form-input" placeholder="+380XXXXXXXXX" required 
+                               oninput="validatePhoneInput(this)" title="Будь ласка, введіть повний номер телефону (наприклад, +380991234567)">
+                        <small id="phoneError" style="color: #ff6b6b; font-size: 11px; display: none; margin-top: 4px;">Введіть повний номер телефону (має бути не менше 10-12 цифр)!</small>
+                    </div>
+
+                    <!-- Добавлено поле для Telegram (по желанию) -->
+                    <div class="form-group">
+                        <label class="form-label" for="clientTelegram">Telegram (username або номер, не обов'язково):</label>
+                        <input type="text" id="clientTelegram" class="form-input" placeholder="@username або номер">
                     </div>
 
                     <div class="form-group">
@@ -672,7 +680,7 @@
                 oldPrice: '2990 грн',
                 left: '12 комплектів',
                 collection: 'Lacoste Winter Collection',
-                materialIcon: '❄️',
+                materialIcon: '❄️️',
                 materialText: 'Теплий турецький трикотаж на флисе (Зима)',
                 colors: [
                     { name: 'Молочний', img: 'https://i.postimg.cc/zGDwXQfp/IMG-4158.jpg' },
@@ -785,6 +793,21 @@
             });
         }
 
+        // Строгая проверка количества цифр в номере телефона (минимум 10 цифр, например 380XXXXXXXXX)
+        function validatePhoneInput(input) {
+            const errorElement = document.getElementById('phoneError');
+            // Оставляем только цифры из введенного значения
+            const digitsOnly = input.value.replace(/\D/g, '');
+            
+            if (digitsOnly.length < 10) {
+                errorElement.style.display = 'block';
+                input.setCustomValidity('Номер занадто короткий, введіть усі цифри повністю.');
+            } else {
+                errorElement.style.display = 'none';
+                input.setCustomValidity('');
+            }
+        }
+
         document.getElementById('orderModal').addEventListener('click', (e) => {
             if (e.target === document.getElementById('orderModal')) closeModal();
         });
@@ -793,10 +816,19 @@
             e.preventDefault();
             const name = document.getElementById('clientName').value;
             const phone = document.getElementById('clientPhone').value;
+            const telegram = document.getElementById('clientTelegram').value.trim();
             const region = document.getElementById('clientRegion').value;
             const city = document.getElementById('clientCity').value;
             const post = document.getElementById('clientPost').value;
             const btn = document.getElementById('submitBtn');
+
+            // Дополнительная защита на отправку: проверяем цифры в номере
+            const digitsOnly = phone.replace(/\D/g, '');
+            if (digitsOnly.length < 10) {
+                document.getElementById('phoneError').style.display = 'block';
+                document.getElementById('clientPhone').focus();
+                return;
+            }
 
             btn.innerText = 'Відправляємо...';
             btn.disabled = true;
@@ -804,16 +836,21 @@
             const modelTitle = productData[currentModel].name;
             const priceVal = productData[currentModel].price;
 
-            const text = `🔥 <b>Нова заявка з сайту (Lacoste)!</b>\n\n` +
+            let text = `🔥 <b>Нова заявка з сайту (Lacoste)!</b>\n\n` +
                          `🧥 <b>Модель:</b> ${modelTitle}\n` +
                          `🎨 <b>Колір:</b> ${selectedColor}\n` +
                          `📏 <b>Розмір:</b> ${selectedSize}\n\n` +
                          `👤 <b>ПІБ:</b> ${name}\n` +
-                         `📞 <b>Телефон:</b> ${phone}\n` +
-                         `🌍 <b>Область:</b> ${region}\n` +
-                         `🏙 <b>Місто:</b> ${city}\n` +
-                         `📦 <b>Відділення НП:</b> ${post}\n\n` +
-                         `💰 <b>Сума:</b> ${priceVal} (з подарунком)`;
+                         `📞 <b>Телефон:</b> ${phone}\n`;
+            
+            if (telegram) {
+                text += `💬 <b>Telegram:</b> ${telegram}\n`;
+            }
+
+            text += `🌍 <b>Область:</b> ${region}\n` +
+                    `🏙 <b>Місто:</b> ${city}\n` +
+                    `📦 <b>Відділення НП:</b> ${post}\n\n` +
+                    `💰 <b>Сума:</b> ${priceVal} (з подарунком)`;
 
             const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
 
